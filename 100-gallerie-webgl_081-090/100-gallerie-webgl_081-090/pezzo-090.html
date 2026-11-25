@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>090 · Pixel art — WebGL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* layout: indice dei 100 pezzi a sinistra, palco a destra, codice sotto il palco */
+:root{--bg:#15131a;--panel:#1d1a24;--line:#322d3d;--ink:#efe9e1;--mute:#9a93a6;--acc:#ff6b4a;--acc2:#ffc145;--disp:"Bricolage Grotesque","Trebuchet MS",sans-serif;--body:"Instrument Sans","Segoe UI",sans-serif;--mono:"JetBrains Mono",Consolas,monospace;color-scheme:dark}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--body)}
+button,input{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+.app{display:grid;grid-template-columns:330px minmax(0,1fr);height:100%}
+.side{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line);background:var(--panel)}
+.side header{padding:20px 18px 12px;display:grid;gap:10px;border-bottom:1px solid var(--line)}
+.kick{margin:0;font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--acc)}
+h1{margin:0;font:700 26px/1.05 var(--disp);text-wrap:balance}
+#q{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{display:flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--line);border-radius:99px;background:none;font-size:12px;color:var(--mute)}
+.chips button.on{border-color:var(--ink);color:var(--ink)}
+.chips i,#list i{width:7px;height:7px;border-radius:50%;flex:none}
+#list{list-style:none;margin:0;padding:6px;overflow:auto;flex:1;min-height:0}
+#list button{display:flex;align-items:center;gap:9px;width:100%;padding:6px 10px;border:0;border-radius:6px;background:none;text-align:left}
+#list button:hover{background:#ffffff0d}
+#list li.on button{background:var(--ink);color:#15131a}
+#list b{font:600 11px var(--mono);color:var(--mute);font-variant-numeric:tabular-nums}
+#list li.on b{color:#15131a}
+.main{min-width:0;overflow:auto;padding:18px 22px 40px;display:grid;gap:14px;align-content:start}
+.bar{display:flex;gap:14px;align-items:flex-start}
+.bar .ttl{flex:1;min-width:0}
+.bar .meta{display:flex;gap:10px;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute);font-variant-numeric:tabular-nums}
+.bar .meta #fam{color:var(--acc2)}
+h2{margin:4px 0 2px;font:700 30px/1.1 var(--disp);text-wrap:balance}
+#desc{margin:0;color:var(--mute);max-width:65ch}
+.nav{display:flex;gap:6px;flex:none}
+.nav button{padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:13px;white-space:nowrap}
+.nav button:hover{border-color:var(--ink)}
+.stage{position:relative;border:1px solid var(--line);border-radius:10px;background:#100e14;overflow:hidden;min-height:300px;display:grid;align-items:center}
+.code{border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.code summary{padding:10px 14px;cursor:pointer;font-weight:600}
+.code .in{position:relative;border-top:1px solid var(--line)}
+.code pre{margin:0;padding:14px;max-height:420px;overflow:auto;font:400 12px/1.55 var(--mono);white-space:pre-wrap;word-break:break-word;color:#d9d2e6}
+#copy{position:absolute;top:8px;right:14px;padding:4px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);font-size:12px}
+.ar{position:absolute;top:50%;z-index:5;width:42px;height:42px;margin-top:-21px;border:1px solid #ffffff40;border-radius:50%;background:#15131acc;color:var(--ink);font-size:17px;line-height:1;display:grid;place-items:center;padding:0}
+.ar:hover{background:var(--acc);border-color:var(--acc);color:#15131a}
+.ar-p{left:8px}.ar-n{right:8px}
+@media(max-width:860px){html,body{height:auto}.app{display:block;height:auto}.side{border-right:0;border-bottom:1px solid var(--line)}#list{max-height:190px}.main{padding:14px 16px 32px}.bar{flex-wrap:wrap}h2{font-size:24px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+.stage{display:grid;place-items:center}
+.gl{position:relative;width:min(100%,calc(74vh*20/13));aspect-ratio:20/13;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.gl canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+.gl .hint{position:absolute;left:12px;bottom:10px;margin:0;padding:3px 8px;border-radius:4px;background:#15131acc;color:var(--mute);font-size:12px;pointer-events:none}
+.gl .ar-p{left:10px}.gl .ar-n{right:10px}
+.gl .err{position:absolute;inset:0;display:grid;place-items:center;padding:20px;text-align:center;color:var(--mute)}
+
+</style><style>
+html.solo .side,html.solo .nav,html.solo #num{display:none!important}html.solo .app{grid-template-columns:minmax(0,1fr)}
+html.solo .main{max-width:1200px;width:100%;margin:auto}
+html.embed body{background:#100e14}html.embed .bar,html.embed .code,html.embed .hint{display:none!important}
+html.embed,html.embed body{height:auto}html.embed .app{display:block;height:auto}html.embed .main{padding:0;overflow:visible}
+html.embed .stage{border:0;border-radius:0}html.embed .gl{width:100%}
+</style></head><body><script>document.documentElement.classList.add("solo")</script><script>(function(){var em=/[?&]embed\b/.test(location.search);if(!em)return;document.documentElement.classList.add('embed');
+function send(){var h=Math.ceil(document.documentElement.scrollHeight);parent.postMessage({pezzoH:h,id:location.pathname.split('/').pop()},'*')}
+addEventListener('load',function(){send();new ResizeObserver(send).observe(document.body);setTimeout(send,800);setTimeout(send,2500)});})();</script>
+<div class="app">
+<aside class="side"><header><p class="kick">Raccolta 08 · WebGL puro</p><h1>100 gallerie WebGL</h1>
+<input id="q" type="search" placeholder="Cerca tra i 100 pezzi" aria-label="Cerca tra i 100 pezzi"><div class="chips" id="chips"></div></header>
+<ol id="list"></ol></aside>
+<main class="main">
+<div class="bar"><div class="ttl"><div class="meta"><span id="num"></span><span id="fam"></span></div><h2 id="name"></h2><p id="desc"></p></div>
+<div class="nav"><button type="button" id="prev">← Pezzo precedente</button><button type="button" id="next">Pezzo successivo →</button></div></div>
+<div class="stage" id="stage"></div>
+<details class="code"><summary>Codice di questo pezzo</summary><div class="in"><button type="button" id="copy">Copia</button><pre id="code"></pre></div></details>
+</main></div>
+
+<script>
+const $q=(s,r=document)=>r.querySelector(s),pad=(n,l=2)=>String(n).padStart(l,'0');
+function rng(s){return()=>(s=(Math.imul(s,1664525)+1013904223)>>>0)/4294967296}
+const PAL=[['#ff8a5b','#3d1e6d','#ffd166','#1b1035'],['#0b3954','#bfd7ea','#ff6663','#e0ff4f'],['#f6bd60','#f28482','#84a59d','#3d405b'],['#22223b','#4a4e69','#f2e9e4','#c9ada7'],['#003049','#d62828','#f77f00','#fcbf49'],['#2d6a4f','#d8f3dc','#ffb703','#081c15'],['#264653','#2a9d8f','#e9c46a','#e76f51'],['#5f0f40','#fb8b24','#e36414','#0f4c5c'],['#f72585','#3a0ca3','#4cc9f0','#ffffff'],['#fefae0','#606c38','#bc6c25','#283618'],['#10002b','#7b2cbf','#e0aaff','#ff9e00'],['#edf6f9','#006d77','#e29578','#83c5be']];
+const TIT=['Dune al tramonto','Cerchi d\'acqua','Righe di sole','Isolati','Archi','Vele','Colline blu','Bolle','Tende','Quartiere','Onde radio','Cime'];
+// Immagini di prova disegnate su canvas: sostituiscile con le tue foto
+function makeImage(i,w=800,h=520,nl){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d'),P=PAL[i%12],R=rng(i*97+13),s=i%6;
+const g=x.createLinearGradient(0,0,w*R(),h);g.addColorStop(0,P[0]);g.addColorStop(1,P[1]);x.fillStyle=g;x.fillRect(0,0,w,h);
+if(s==0){for(let k=0;k<5;k++){x.fillStyle=k%2?P[2]:P[3];x.globalAlpha=.3+k*.14;x.beginPath();x.moveTo(0,h);for(let X=0;X<=w;X+=20)x.lineTo(X,h*(.42+k*.11)+Math.sin(X*.006*(k+1)+i+k)*h*.07);x.lineTo(w,h);x.fill()}x.globalAlpha=1;x.fillStyle=P[2];x.beginPath();x.arc(w*.72,h*.26,h*.11,0,7);x.fill()}
+if(s==1)for(let k=0;k<16;k++){x.globalAlpha=.25+R()*.5;x.fillStyle=P[2+k%2];x.beginPath();x.arc(R()*w,R()*h,20+R()*h*.28,0,7);x.fill()}
+if(s==2){x.translate(w/2,h/2);x.rotate(-.5+R());for(let k=-12;k<12;k++){x.globalAlpha=.35+R()*.5;x.fillStyle=P[2+((k+12)%2)];x.fillRect(k*70,-w,20+R()*40,w*2)}x.setTransform(1,0,0,1,0,0)}
+if(s==3)for(let k=0;k<14;k++){const bw=w/14,bh=h*(.2+R()*.6);x.globalAlpha=.85;x.fillStyle=k%3?P[3]:P[2];x.fillRect(k*bw+3,h-bh,bw-6,bh);x.fillStyle=P[0];x.globalAlpha=.5;for(let y=h-bh+12;y<h-10;y+=24)x.fillRect(k*bw+12,y,bw-24,8)}
+if(s==4)for(let k=9;k>0;k--){x.globalAlpha=.9;x.fillStyle=k%2?P[2]:P[3];x.beginPath();x.arc(w*(.15+R()*.1),h,k*h*.13,0,7);x.fill()}
+if(s==5)for(let k=0;k<12;k++){x.globalAlpha=.35+R()*.5;x.fillStyle=P[2+k%2];const X=R()*w,Y=R()*h,S=60+R()*220;x.beginPath();x.moveTo(X,Y-S);x.lineTo(X+S*.7,Y+S*.6);x.lineTo(X-S*.7,Y+S*.6);x.fill()}
+x.globalAlpha=1;if(nl)return c;x.font='600 '+Math.round(h*.045)+'px monospace';const t='N. '+pad(i+1)+'  '+TIT[i%12],tw=x.measureText(t).width;x.fillStyle='rgba(10,8,14,.55)';x.fillRect(h*.05,h*.86,tw+h*.06,h*.085);x.fillStyle='#fff';x.fillText(t,h*.08,h*.918);return c}
+const CAN=Array.from({length:12},(_,i)=>makeImage(i));
+function Catalog(demos,fams,show,hide){const list=$q('#list'),chips=$q('#chips');let cur=-1,fam=-1;
+demos.forEach((d,i)=>{const li=document.createElement('li');li.innerHTML=`<button type="button" data-i="${i}"><i style="background:${fams[d.f][1]}"></i><b>${pad(i+1,3)}</b><span>${d.n}</span></button>`;list.append(li);d.li=li});
+chips.innerHTML='<button type="button" data-f="-1" class="on">Tutti</button>'+fams.map((f,i)=>`<button type="button" data-f="${i}"><i style="background:${f[1]}"></i>${f[0]}</button>`).join('');
+const filt=()=>{const s=$q('#q').value.trim().toLowerCase();demos.forEach(d=>d.li.hidden=!((fam<0||d.f==fam)&&(!s||(d.n+' '+d.d).toLowerCase().includes(s))))};
+chips.onclick=e=>{const b=e.target.closest('button');if(!b)return;fam=+b.dataset.f;chips.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x==b));filt()};
+$q('#q').oninput=filt;list.onclick=e=>{const b=e.target.closest('button');if(b)go(+b.dataset.i)};
+function go(i){i=(i+demos.length)%demos.length;if(i==cur)return;if(cur>=0){try{hide(demos[cur])}catch(e){console.error(e)}demos[cur].li.classList.remove('on')}const first=cur<0;cur=i;const d=demos[i];d.li.classList.add('on');
+if(!first&&list.scrollHeight>list.clientHeight){const a=d.li.offsetTop-list.offsetTop;if(a<list.scrollTop||a>list.scrollTop+list.clientHeight-40)list.scrollTop=a-80}
+$q('#num').textContent=pad(i+1,3)+' / '+demos.length;$q('#fam').textContent=fams[d.f][0];$q('#name').textContent=d.n;$q('#desc').textContent=d.d;
+let code='';try{code=show(d,$q('#stage'))||''}catch(e){console.error('pezzo '+(i+1)+': '+e.message,e);code='Errore: '+e.message}$q('#code').textContent=code;
+try{location.hash='p'+pad(i+1,3)}catch(e){}}
+$q('#prev').onclick=()=>go(cur-1);$q('#next').onclick=()=>go(cur+1);
+$q('#copy').onclick=()=>{const b=$q('#copy');try{navigator.clipboard.writeText($q('#code').textContent).then(()=>{b.textContent='Copiato';setTimeout(()=>b.textContent='Copia',1200)},()=>{b.textContent='Seleziona e copia a mano'})}catch(e){b.textContent='Seleziona e copia a mano'}};
+const h=()=>{const m=/^#p(\d+)$/.exec(location.hash);return m?Math.min(demos.length,Math.max(1,+m[1]))-1:0};
+addEventListener('hashchange',()=>go(h()));go(h());window.__go=go}
+
+</script>
+<script>
+const N=12,FAM=[['Transizioni','#ff6b4a'],['Effetti al cursore','#4cc9f0'],['Gallerie nello shader','#b892ff'],['Filtri animati','#ffc145']];
+const DEMOS=[],D=(f,n,d,g)=>DEMOS.push({f,n,d,g});
+const VS='attribute vec2 a;varying vec2 vUv;void main(){vUv=a*.5+.5;gl_Position=vec4(a,0.,1.);}';
+// Funzioni a disposizione di ogni shader
+const HEAD=`precision highp float;
+uniform sampler2D tA,tB,tT; // foto corrente, foto in arrivo, atlante 4x3 con tutte le 12 foto
+uniform float p,t,h,ix;     // avanzamento 0-1, secondi, cursore presente 0-1, indice di scorrimento
+uniform vec2 m,v,r;         // cursore 0-1, scia del cursore, dimensioni in pixel
+varying vec2 vUv;
+const float PI=3.14159265;
+vec4 A(vec2 u){return texture2D(tA,u);}
+vec4 B(vec2 u){return texture2D(tB,u);}
+vec4 X(vec2 u){return mix(A(u),B(u),p);}
+vec4 I(float i,vec2 u){i=floor(mod(i+.5,12.));u=clamp(u,.004,.996);return texture2D(tT,vec2((mod(i,4.)+u.x)/4.,(2.-floor(i/4.)+u.y)/3.));}
+float lum(vec4 c){return dot(c.rgb,vec3(.299,.587,.114));}
+mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+vec2 dm(vec2 u){return (u-m)*vec2(r.x/r.y,1.);}
+float h21(vec2 q){return fract(sin(dot(q,vec2(127.1,311.7)))*43758.5453);}
+float ns(vec2 q){vec2 i=floor(q),f=fract(q);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1.,0.)),f.x),mix(h21(i+vec2(0.,1.)),h21(i+1.),f.x),f.y);}
+`;
+// ---- 40 transizioni ----
+D(0,'Dissolvenza con bagliore','Le due foto si sommano in un lampo a metà cambio.','vec4 a=A(u),b=B(u);return mix(a,b,p)+(a+b)*.5*sin(p*PI)*.35;');
+D(0,'Tendina diagonale','Un bordo sfumato taglia dall\'angolo in basso a sinistra.','float e=(u.x+u.y)*.5;return mix(B(u),A(u),smoothstep(p*1.2-.1,p*1.2,e));');
+D(0,'Finestra a rombo','Un rombo si allarga dal centro.','float d=abs(u.x-.5)+abs(u.y-.5);return d<p*1.05?B(u):A(u);');
+D(0,'Croce che si apre','Due fasce incrociate si allargano.','vec2 d=abs(u-.5);return min(d.x,d.y)<p*.5?B(u):A(u);');
+D(0,'Griglia di pois','Tanti cerchi crescono fino a toccarsi.','vec2 f=fract(u*vec2(16.,10.4))-.5;return length(f)<p*.75?B(u):A(u);');
+D(0,'Strisce che salgono','Dieci strisce verticali escono dall\'alto, una dopo l\'altra.','float s=floor(u.x*10.);float q=clamp(p*1.6-s/10.*.6,0.,1.);vec2 w=u+vec2(0.,q);return w.y>1.?B(u):A(w);');
+D(0,'Tessere casuali','I riquadri cambiano in ordine sparso.','vec2 c=floor(u*vec2(16.,10.));return h21(c)<p?B(u):A(u);');
+D(0,'Scambio per luminosità','Le zone chiare si spostano più di quelle scure.','float d=(lum(A(u))+lum(B(u)))*.5;vec2 o=vec2(d*.3);return mix(A(u+o*p),B(u-o*(1.-p)),p);');
+D(0,'Vento orizzontale','Fili sottili portano via la foto da sinistra.','float q=h21(vec2(0.,floor(u.y*120.)));float e=smoothstep(0.,-.2,u.x*.8+q*.2-p*1.2);return mix(A(u),B(u),e);');
+D(0,'Anelli','Otto anelli concentrici si riempiono insieme.','float l=length(u-.5);return fract(l*8.)<p?B(u):A(u);');
+D(0,'Cubo','Le due foto sono facce di un cubo che ruota.','float e=1.-p;if(u.x<e){float x=u.x/max(e,1e-4),s=1.-(1.-x)*p*.5,y=(u.y-.5)/s+.5;return (y<0.||y>1.)?vec4(0.,0.,0.,1.):A(vec2(x,y))*(1.-p*.5*(1.-x));}float x=(u.x-e)/max(p,1e-4),s=1.-x*(1.-p)*.5,y=(u.y-.5)/s+.5;return (y<0.||y>1.)?vec4(0.,0.,0.,1.):B(vec2(x,y))*(1.-(1.-p)*.5*x);');
+D(0,'Porta a battente','La foto si chiude come una porta sul cardine sinistro.','float e=max(1.-p,1e-4);if(u.x<e){float x=u.x/e,s=1.-x*p*.6,y=(u.y-.5)/s+.5;if(y>0.&&y<1.)return A(vec2(x,y))*(1.-p*.6*x);}return B(u);');
+D(0,'Sogno ondulato','Onde orizzontali, come un ricordo nei film.','float k=sin(p*PI);vec2 o=vec2(sin(u.y*20.+t*4.)*.04,0.)*k;return mix(A(u+o),B(u-o),p);');
+D(0,'Zoom sfocato radiale','Una sfocatura a raggiera durante lo scambio.','vec2 d=u-.5;float k=sin(p*PI)*.25;vec4 c=vec4(0.);for(int i=0;i<12;i++){float s=1.-k*float(i)/12.;c+=mix(A(.5+d*s),B(.5+d*s),p);}return c/12.;');
+D(0,'Sfocatura di movimento','Una strisciata orizzontale veloce.','float k=sin(p*PI)*.2;vec4 c=vec4(0.);for(int i=0;i<12;i++){vec2 o=vec2(k*(float(i)/11.-.5),0.);c+=mix(A(u+o),B(u+o),p);}return c/12.;');
+D(0,'Caduta','Quaranta colonne precipitano con ritardi diversi.','float c=floor(u.x*40.);float q=clamp(p*1.5-h21(vec2(c,1.))*.5,0.,1.);vec2 w=u+vec2(0.,q*q);return w.y>1.?B(u):A(w);');
+D(0,'Spirale','Un braccio a spirale ruota e copre tutto.','vec2 d=u-.5;float a=atan(d.y,d.x)/6.2832+.5;return fract(a+length(d)*3.)<p*1.02?B(u):A(u);');
+D(0,'Raggi di sole','Quattordici spicchi si aprono a ventaglio.','float a=atan(u.y-.5,u.x-.5);return fract(a/6.2832*14.)<p?B(u):A(u);');
+D(0,'Tapparella','Fasce orizzontali che si riempiono dal basso.','return fract(u.y*14.)<p?B(u):A(u);');
+D(0,'Vecchio televisore','La foto si schiaccia in una riga, poi si riaccende.','float k=p<.5?1.-p*2.:p*2.-1.;float y=(u.y-.5)/max(k,.004)+.5;if(y<0.||y>1.)return vec4(0.,0.,0.,1.);vec4 c=p<.5?A(vec2(u.x,y)):B(vec2(u.x,y));return c+(1.-k)*.6;');
+D(0,'Macchia d\'inchiostro','La foto nuova si allarga come inchiostro sulla carta.','float n=ns(u*3.)*.6+ns(u*9.)*.3+length(u-.5)*.6;return mix(A(u),B(u),smoothstep(n-.03,n+.03,p*1.6));');
+D(0,'Scorrimento con parallasse','La nuova sale dal basso, più lenta della vecchia.','return u.y<p?B(vec2(u.x,u.y+(1.-p)*.3)):A(vec2(u.x,u.y-p*.3));');
+D(0,'Rimbalzo','La foto nuova cade dall\'alto e rimbalza.','float o=(1.-p)*abs(cos(p*9.));vec2 w=vec2(u.x,u.y-o);return w.y<0.?A(u):B(w);');
+D(0,'Onda d\'urto','Un anello che deforma l\'immagine mentre si allarga.','vec2 d=u-.5;float l=length(d);float w=p*.9;float e=smoothstep(.12,0.,abs(l-w));vec2 q=u+d/(l+1e-4)*e*.06;return l<w?B(q):A(q);');
+D(0,'Riquadri rotanti','Ogni riquadro ruota e si restringe fino a sparire.','vec2 c=u*vec2(8.,5.2);vec2 f=fract(c)-.5;float q=clamp(p*1.4-h21(floor(c))*.4,0.,1.);f=rot(q*PI*.5)*f;return max(abs(f.x),abs(f.y))<.5*(1.-q)?A(u):B(u);');
+D(0,'Strappo','La foto si lacera lungo una linea irregolare.','float e=u.x-(.5+(ns(vec2(u.y*8.,1.))-.5)*.2);float s=p*.7;vec2 w=u+vec2(e<0.?s:-s,0.);return abs(e)<s?B(u):A(w);');
+D(0,'Mosaico che si ritira','Le tessere si rimpiccioliscono e lasciano vedere sotto.','vec2 c=fract(u*vec2(10.,6.5))-.5;return max(abs(c.x),abs(c.y))<(1.-p)*.5?A(u):B(u);');
+D(0,'Giro e zoom','La foto ruota e si allontana mentre cambia.','float k=sin(p*PI);vec2 q=rot(k*1.2)*(u-.5)*(1.-k*.5)+.5;return mix(A(q),B(q),smoothstep(.3,.7,p));');
+D(0,'Cristalli','Celle irregolari che cambiano una alla volta.','vec2 g=u*vec2(9.,6.);vec2 i=floor(g);float md=9.;vec2 mc=i;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=i+vec2(float(x),float(y));vec2 o=c+vec2(h21(c),h21(c+7.));float d=length(g-o);if(d<md){md=d;mc=c;}}return h21(mc+3.)<p?B(u):A(u);');
+D(0,'Scansione laser','Una riga luminosa sale e lascia la foto nuova.','float e=p*1.1-.05;float g=smoothstep(.03,0.,abs(u.y-e));return (u.y<e?B(u):A(u))+vec4(.3,1.,.8,0.)*g;');
+D(0,'Negativo','I colori si invertono per un istante.','float k=sin(p*PI);vec4 c=mix(A(u),B(u),p);return vec4(mix(c.rgb,1.-c.rgb,k),1.);');
+D(0,'Lampo bianco','Un flash copre il cambio.','vec4 c=p<.5?A(u):B(u);return mix(c,vec4(1.),sin(p*PI));');
+D(0,'Scivolo con ombra','La foto nuova scorre sopra la vecchia e la oscura.','float e=1.-p;if(u.x>e)return B(vec2(u.x-e,u.y));return A(vec2(u.x+p*.3,u.y))*(1.-.5*smoothstep(.2,0.,e-u.x))*(1.-p*.4);');
+D(0,'Ventaglio dall\'angolo','Una lancetta ruota dall\'angolo in basso a sinistra.','float a=atan(u.y,u.x)/(PI*.5);return a<p?B(u):A(u);');
+D(0,'Doppia tendina','Due bande entrano dall\'alto e dal basso e si chiudono al centro.','return abs(u.y-.5)>.5-p*.5?B(u):A(u);');
+D(0,'Righe a pettine','Tredici righe entrano alternate da destra e da sinistra.','float c=floor(u.y*13.);float s=mod(c,2.)<1.?u.x:1.-u.x;return s<p?B(u):A(u);');
+D(0,'Lente','L\'immagine si deforma a barile nel passaggio.','float k=sin(p*PI);vec2 d=u-.5;float l=length(d);vec2 q=.5+d*(1.+k*l*l*6.);return mix(A(q),B(q),p);');
+D(0,'Acquerello','Macchie tremolanti sciolgono una foto nell\'altra.','float n=ns(u*5.+t*.1);vec2 o=(vec2(ns(u*14.),ns(u*14.+9.))-.5)*.06*sin(p*PI);return mix(A(u+o),B(u+o),smoothstep(0.,1.,p*1.6-n*.6));');
+D(0,'Canali sfalsati','Rosso, verde e blu cambiano in tre tempi.','vec4 a=A(u),b=B(u);return vec4(mix(a.r,b.r,step(u.x,p*1.3)),mix(a.g,b.g,step(u.x,p*1.3-.15)),mix(a.b,b.b,step(u.x,p*1.3-.3)),1.);');
+D(0,'Esagoni','Celle a nido d\'ape si aprono dal centro verso i bordi.','vec2 q=u*vec2(14.,9.1);q.x+=mod(floor(q.y),2.)*.5;vec2 f=fract(q)-.5;float k=clamp(p*2.-length(u-.5)*1.4,0.,1.);return max(abs(f.x),abs(f.y)*.866+abs(f.x)*.5)<k*.62?B(u):A(u);');
+// ---- 20 effetti al cursore ----
+D(1,'Increspatura','Il cursore smuove la superficie come un dito nell\'acqua.','vec2 d=dm(u);float l=length(d);return X(u+d/(l+1e-4)*sin(l*50.-t*8.)*.012*h*smoothstep(.5,0.,l));');
+D(1,'Lente d\'ingrandimento','Un cerchio ingrandisce la zona sotto il cursore.','float l=length(dm(u));float k=smoothstep(.22,.2,l)*h;return X(mix(u,m+(u-m)*.5,k))+smoothstep(.02,0.,abs(l-.21))*h*.5;');
+D(1,'Liquido trascinato','L\'immagine segue il cursore come una pasta morbida.','float l=length(dm(u));return X(u-v*smoothstep(.4,0.,l)*1.5);');
+D(1,'Colori che si separano','Più muovi veloce, più i canali si staccano.','vec2 o=v*.6+vec2(.004*h,0.);return vec4(X(u+o).r,X(u).g,X(u-o).b,1.);');
+D(1,'Torcia','Tutto è in ombra tranne il cerchio di luce del cursore.','float l=length(dm(u));return X(u)*mix(1.,smoothstep(.45,.05,l)+.08,h);');
+D(1,'Anteprima della prossima','Sotto il cursore si vede la foto successiva.','float l=length(dm(u))+(ns(u*8.+t*.3)-.5)*.08;float k=smoothstep(.26,.24,l)*h;return mix(A(u),B(u),max(p,k));');
+D(1,'Pixel vicino al cursore','La zona attorno al cursore si sgrana.','float l=length(dm(u));float k=smoothstep(.3,.1,l)*h;float c=mix(600.,24.,k);return X((floor(u*c)+.5)/c);');
+D(1,'Mulinello','L\'immagine si avvita attorno al cursore.','float l=length(dm(u));float a=smoothstep(.35,0.,l)*3.*h;return X(rot(a)*(u-m)+m);');
+D(1,'Raggi X','Dentro il cerchio la foto diventa un negativo azzurro.','float l=length(dm(u));float k=smoothstep(.25,.23,l)*h;vec4 c=X(u);vec3 x=vec3(1.-lum(c))*vec3(.6,.9,1.);return vec4(mix(c.rgb,x,k),1.);');
+D(1,'Calamita','Il cursore tira a sé l\'immagine.','float l=length(dm(u));float k=smoothstep(.4,0.,l)*h;return X(u-(u-m)*k*.5);');
+D(1,'Vetro a quadretti','Vicino al cursore l\'immagine si rompe in tasselli di vetro.','vec2 c=floor(u*vec2(20.,13.));vec2 o=(vec2(h21(c),h21(c+5.))-.5)*.08*smoothstep(.4,0.,length(dm(u)))*h;return X(u+o);');
+D(1,'Retino tipografico','Sotto il cursore la foto diventa una stampa a punti.','float k=smoothstep(.35,.15,length(dm(u)))*h;vec4 c=X(u);vec2 g=fract(u*vec2(80.,52.))-.5;float dt=step(length(g),sqrt(lum(c))*.6);return mix(c,vec4(vec3(dt)*vec3(1.,.95,.85),1.),k);');
+D(1,'Gocce sul vetro','Gocce ferme che deformano quello che c\'è dietro.','vec2 g=u*vec2(10.,6.5);vec2 c=floor(g);vec2 f=fract(g)-.5-(vec2(h21(c),h21(c+3.))-.5)*.5;float q=.12+h21(c+9.)*.15;float l=length(f);float k=smoothstep(q,q-.03,l);return X(u+f*k*.15)+k*smoothstep(0.,q,l)*.15;');
+D(1,'Aria calda','Un tremolio sale dal punto in cui sta il cursore.','float k=smoothstep(.5,0.,length(dm(u)))*h+.15;return X(u+vec2(ns(u*18.+vec2(0.,-t*2.))-.5,0.)*.03*k);');
+D(1,'Inclinazione','La foto si piega seguendo il cursore.','return X(u+vec2((m.x-.5)*(u.y-m.y)*.6*h,0.));');
+D(1,'Fuoco selettivo','Nitido vicino al cursore, sfocato lontano.','float l=length(dm(u));float q=smoothstep(.1,.6,l)*.02*h;vec4 c=vec4(0.);for(int i=0;i<12;i++){float a=float(i)*.5236;c+=X(u+vec2(cos(a),sin(a))*q);}return c/12.;');
+D(1,'Zoom cromatico','I colori si allargano a raggiera dal cursore.','vec2 d=u-m;float k=h*.04;return vec4(X(m+d*(1.-k)).r,X(u).g,X(m+d*(1.+k)).b,1.);');
+D(1,'Caleidoscopio portatile','Un piccolo caleidoscopio segue il cursore.','vec2 d=dm(u);float l=length(d);if(l>.28*h)return X(u);float a=atan(d.y,d.x);float s=PI/4.;a=abs(mod(a,s*2.)-s);return X(m+l*vec2(cos(a),sin(a))*vec2(r.y/r.x,1.));');
+D(1,'Profondità finta','Le zone chiare si spostano di più: sembra un rilievo.','vec2 o=(m-.5)*.08*h;return X(u+o*lum(X(u)));');
+D(1,'Confronto a tendina','Il cursore sposta il confine tra questa foto e la prossima.','float e=mix(1.,m.x,h);float g=smoothstep(.004,0.,abs(u.x-e));return mix(u.x<e?A(u):B(u),B(u),p)+g*(1.-p);');
+// ---- 20 gallerie nello shader ----
+D(2,'Griglia con zoom','Dodici foto in griglia: quella sotto il cursore si ingrandisce.','vec2 g=u*vec2(4.,3.);vec2 c=floor(g),f=fract(g);vec2 mc=floor(m*vec2(4.,3.));float k=(c==mc?1.:0.)*h;f=(f-.5)*(1.-k*.3)+.5;float b=step(.02,f.x)*step(f.x,.98)*step(.03,f.y)*step(f.y,.97);return I(c.x+(2.-c.y)*4.+floor(ix+.5),f)*b*mix(1.,.45+.55*k,h);');
+D(2,'Colonne opposte','Quattro colonne scorrono, due in su e due in giù.','float c=floor(u.x*4.);float s=mod(c,2.)<1.?1.:-1.;float y=u.y*3.+s*(t*.15+ix)+c*.37;vec2 f=vec2(fract(u.x*4.),fract(y));return I(floor(y)+c*3.,f)*step(.03,f.x)*step(f.x,.97)*step(.03,f.y)*step(f.y,.97);');
+D(2,'Righe a velocità diverse','Tre nastri orizzontali, ognuno col suo passo.','float c=floor(u.y*3.);float s=mod(c,2.)<1.?1.:-1.;float x=u.x*4.+s*(t*.12*(1.+c*.5)+ix)+c*.4;vec2 f=vec2(fract(x),fract(u.y*3.));return I(floor(x)+c*4.,f)*step(.02,f.x)*step(f.x,.98)*step(.03,f.y)*step(f.y,.97);');
+D(2,'Occhio di pesce','La griglia è vista attraverso una lente sferica.','vec2 d=u-.5;float l=length(d);vec2 q=.5+d*(1.+l*l*2.5);q=q*vec2(4.,3.)+vec2(ix+t*.05,0.);return I(floor(q.x)+floor(q.y)*4.+48.,fract(q));');
+D(2,'Tunnel','Le foto rivestono un tunnel senza fine.','vec2 d=(u-.5)*vec2(r.x/r.y,1.);float a=atan(d.y,d.x)/6.2832+.5;float z=.25/length(d)+t*.3+ix;vec2 q=vec2(a*6.,z*1.5);return I(floor(q.x)+floor(q.y)*5.,fract(q))*smoothstep(0.,.25,length(d));');
+D(2,'Cilindro','Le foto girano attorno a un cilindro, più scure ai bordi.','float x=(u.x-.5)*2.;float a=asin(clamp(x,-1.,1.));float q=a/PI*4.+ix+t*.05;return I(floor(q),vec2(fract(q),u.y))*cos(a);');
+D(2,'Mattoni sfalsati','File sfalsate come un muro di mattoni.','vec2 g=u*vec2(4.,4.);g.x+=mod(floor(g.y),2.)*.5+ix*.5+t*.03;vec2 f=fract(g);return I(floor(g.x)+floor(g.y)*5.+60.,f)*step(.02,f.x)*step(f.x,.98)*step(.04,f.y)*step(f.y,.96);');
+D(2,'Bande diagonali','Colonne inclinate che scorrono alternate.','vec2 q=rot(.5)*(u-.5)*vec2(5.,2.5);float c=floor(q.x);q.y+=mod(c,2.)*.5+t*.1*(mod(c,2.)*2.-1.)+ix;return I(c+floor(q.y)*3.+60.,fract(q));');
+D(2,'Anelli di foto','Corone concentriche che ruotano in versi alterni.','vec2 d=(u-.5)*vec2(r.x/r.y,1.);float l=length(d);float g=floor(l*5.);float a=atan(d.y,d.x)/6.2832+.5+(mod(g,2.)*2.-1.)*(t*.03+ix*.08);float q=a*(3.+g*2.);return I(floor(q)+g*3.+120.,vec2(fract(q),fract(l*5.)));');
+D(2,'Spirale di foto','Le foto si avvolgono a chiocciola verso il centro.','vec2 d=(u-.5)*vec2(r.x/r.y,1.);float l=length(d);float a=atan(d.y,d.x)/6.2832+.5;vec2 q=vec2(a*8.,log(l+1e-3)*2.5+a-t*.15-ix*.25);return I(floor(q.x)+floor(q.y)*3.+240.,fract(q));');
+D(2,'Fisarmonica','Sei strisce: quelle vicine al cursore si allargano.','float x=u.x+.1*h*sin(clamp((u.x-m.x)*4.,-PI,PI));float c=floor(x*6.);float f=fract(x*6.);return I(c+floor(ix+.5),vec2(f*.4+.3,u.y))*step(.02,f)*step(f,.98);');
+D(2,'Pavimento','Le foto sono piastrelle di un pavimento che scorre.','if(u.y>.6)return vec4(.06,.055,.08,1.);float z=1./(.62-u.y);vec2 q=vec2((u.x-.5)*z*1.5,z*.8+t*.3+ix);return I(floor(q.x)+floor(q.y)*3.+600.,fract(q))*min(1.,2.5/z);');
+D(2,'Caleidoscopio di galleria','La griglia riflessa in dieci spicchi.','vec2 d=(u-.5)*vec2(r.x/r.y,1.);float a=atan(d.y,d.x),l=length(d);float s=PI/5.;a=abs(mod(a+t*.1,2.*s)-s);vec2 q=l*vec2(cos(a),sin(a))*3.+vec2(ix*.5+t*.05,0.);return I(floor(q.x)+floor(q.y)*4.+48.,fract(q));');
+D(2,'Zoom infinito','Ogni foto contiene la successiva, senza fine.','vec2 d=u-.5;float l=max(abs(d.x),abs(d.y));float z=t*.3+ix;float f=-log2(max(l*2.,1e-4))+z;float n=floor(f);return I(n,d*exp2(n-z)+.5);');
+D(2,'Righe ondulate','La griglia si muove come un tessuto.','vec2 q=u*vec2(4.,3.);q.x+=sin(q.y*2.+t)*.3+ix;q.y+=sin(u.x*6.+t*.7)*.08;return I(floor(q.x)+floor(q.y)*4.+24.,fract(q));');
+D(2,'Tabellone','Ventiquattro caselle che si girano ognuna col suo tempo.','vec2 g=u*vec2(6.,4.);vec2 c=floor(g),f=fract(g);float ph=t*.25+ix+h21(c)*3.;float n=floor(ph);float k=smoothstep(.8,1.,fract(ph));f.y=(f.y-.5)/max(abs(cos(k*PI)),.02)+.5;if(f.y<0.||f.y>1.)return vec4(.05,.05,.07,1.);return I(n+(k>.5?1.:0.)+c.x+c.y*5.,f);');
+D(2,'Strati in parallasse','Tre piani di foto che si muovono col cursore.','vec4 o=vec4(.06,.055,.08,1.);for(int i=0;i<3;i++){float s=float(i);float z=3.4-s*.9;vec2 q=(u-.5)*z*vec2(2.,1.5)+(m-.5)*(s+1.)*.4+vec2(ix*(.3+s*.2)+s*.37,s*.21);vec2 f=fract(q);vec2 c=floor(q);float k=step(.5,h21(c+s*17.))*step(.08,f.x)*step(f.x,.92)*step(.1,f.y)*step(f.y,.9);o=mix(o,I(c.x+c.y*5.+s*4.+60.,f)*(.5+s*.25),k);}return o;');
+D(2,'Riquadri a scala','Celle grandi e piccole mescolate; a ogni passo cambia lo schema.','vec2 g=u*vec2(2.,1.5);vec2 c=floor(g);float lv=1.;for(int i=0;i<3;i++){if(h21(c+lv*3.+floor(ix+.5))>.45)break;g*=2.;c=floor(g);lv+=1.;}vec2 f=fract(g);return I(c.x*3.+c.y*7.+lv+72.,f)*step(.02,f.x)*step(.02,f.y);');
+D(2,'Onda a strisce','Il cambio di foto corre da sinistra a destra, striscia per striscia.','float s=floor(u.x*36.);float ph=ix+t*.1+s*.03;float n=floor(ph);float q=smoothstep(.6,1.,fract(ph));return mix(I(n,u),I(n+1.,u),q);');
+D(2,'Nastro','Un nastro di foto che ondeggia nel vuoto.','float w=u.x*3.+t*.5;float y=u.y-.5-sin(w)*.15;float e=.28+cos(w)*.05;if(abs(y)>e)return vec4(.06,.055,.08,1.);float x=u.x*3.+ix+t*.05;return I(floor(x),vec2(fract(x),y/e*.5+.5))*(.7+.3*cos(w));');
+// ---- 20 filtri animati ----
+D(3,'Due colori','La foto ridotta a un viola scuro e a un giallo caldo.','float l=lum(X(u));return vec4(mix(vec3(.1,.05,.3),vec3(1.,.8,.4),l),1.);');
+D(3,'Retino','Punti neri su carta, come un quotidiano.','vec4 c=X(u);vec2 g=rot(.5)*(u*vec2(90.,58.5));float d=length(fract(g)-.5);float k=step(d,sqrt(1.-lum(c))*.62);return mix(vec4(.96,.93,.86,1.),vec4(.1,.08,.2,1.),k);');
+D(3,'Pannello a LED','Ogni pixel è un piccolo punto luminoso.','vec2 n=vec2(100.,65.);vec2 g=u*n;vec4 c=X((floor(g)+.5)/n);return c*smoothstep(.5,.3,length(fract(g)-.5))*1.4;');
+D(3,'Tubo catodico','Schermo bombato, righe di scansione e bordi scuri.','vec2 d=u-.5;vec2 q=.5+d*(1.+dot(d,d)*.25);if(q.x<0.||q.x>1.||q.y<0.||q.y>1.)return vec4(0.,0.,0.,1.);vec4 c=vec4(X(q+vec2(.002,0.)).r,X(q).g,X(q-vec2(.002,0.)).b,1.);c*=.8+.2*sin(q.y*520.*PI);c*=1.-dot(d,d)*1.2;return c*1.15;');
+D(3,'Videocassetta','Righe che tremano, colori sbavati e una banda che sale.','float j=(h21(vec2(floor(u.y*60.),floor(t*10.)))-.5)*.01;float b=smoothstep(.02,0.,abs(fract(t*.2)-u.y))*.05;vec2 q=u+vec2(j+b,0.);return vec4(X(q+vec2(.004,0.)).r,X(q).g,X(q-vec2(.004,0.)).b,1.)+(h21(u*r+fract(t))-.5)*.08;');
+D(3,'Poster','Pochi livelli di colore, a campiture piatte.','return vec4(floor(X(u).rgb*5.)/4.,1.);');
+D(3,'Schizzo a matita','Solo i contorni, su carta chiara.','vec2 e=vec2(1./800.,1./520.);float gx=lum(X(u+vec2(e.x,0.)))-lum(X(u-vec2(e.x,0.)));float gy=lum(X(u+vec2(0.,e.y)))-lum(X(u-vec2(0.,e.y)));float g=1.-clamp(length(vec2(gx,gy))*6.,0.,1.);return vec4(vec3(g)*vec3(1.,.97,.9),1.);');
+D(3,'Rilievo','La foto sembra sbalzata nel metallo.','vec2 e=vec2(1./800.,1./520.);vec3 c=X(u+e).rgb-X(u-e).rgb;return vec4(vec3(.5)+c*2.,1.);');
+D(3,'Termocamera','Dal blu del freddo al rosso del caldo, secondo la luminosità.','float l=lum(X(u));return vec4(clamp(vec3(1.5-abs(4.*l-3.),1.5-abs(4.*l-2.),1.5-abs(4.*l-1.)),0.,1.),1.);');
+D(3,'Pixel art','Pochi pixel grandi e una tavolozza ridotta.','vec2 n=vec2(80.,52.);vec4 c=X((floor(u*n)+.5)/n);return vec4(floor(c.rgb*6.+.5)/6.,1.);');
+D(3,'Vetrata','Tasselli irregolari con il piombo tra uno e l\'altro.','vec2 n=vec2(16.,10.4);vec2 g=u*n;vec2 i=floor(g);float md=9.,m2=9.;vec2 mo=g;for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=i+vec2(float(x),float(y));vec2 o=c+vec2(h21(c),h21(c+7.));float d=length(g-o);if(d<md){m2=md;md=d;mo=o;}else if(d<m2){m2=d;}}return X(mo/n)*smoothstep(.02,.1,m2-md)*1.1;');
+D(3,'Acquerello mosso','Contorni che tremano e colori a macchie.','vec2 o=(vec2(ns(u*6.+t*.4),ns(u*6.+5.-t*.4))-.5)*.03;vec4 c=X(u+o);return vec4(floor(c.rgb*7.)/7.*.6+c.rgb*.4+(ns(u*200.)-.5)*.06,1.);');
+D(3,'Specchio che respira','Un asse di simmetria che si sposta piano.','float ax=.5+sin(t*.5)*.15;return X(vec2(ax-abs(u.x-ax),u.y));');
+D(3,'Caleidoscopio','Dodici spicchi che ruotano lentamente.','vec2 d=(u-.5)*vec2(r.x/r.y,1.);float a=atan(d.y,d.x)+t*.15,l=length(d);float s=PI/6.;a=abs(mod(a,2.*s)-s);return X(.5+l*vec2(cos(a),sin(a))*.9);');
+D(3,'Bagliore','Le luci si allargano in un alone che pulsa.','vec4 c=X(u);vec4 b=vec4(0.);for(int i=0;i<16;i++){float a=float(i)*.3927;vec4 s=X(u+vec2(cos(a),sin(a))*.02*(1.+mod(float(i),2.)));b+=max(s-.6,0.);}return c+b/16.*2.5*(.8+.2*sin(t*2.));');
+D(3,'Pellicola d\'epoca','Seppia, grana, bordi scuri e qualche graffio.','float l=lum(X(u));vec3 s=vec3(l)*vec3(1.1,.95,.75);vec2 d=u-.5;s*=1.-dot(d,d)*1.4;s+=(h21(u*r+fract(t)*100.)-.5)*.14;s+=step(.997,h21(vec2(floor(u.x*300.),floor(t*8.))))*.25;return vec4(s,1.);');
+D(3,'Visione notturna','Verde, rumorosa, dentro un mirino tondo.','float l=lum(X(u))*1.4+(h21(u*r+fract(t)*50.)-.5)*.25;vec2 d=(u-.5)*vec2(r.x/r.y,1.);float k=smoothstep(.62,.55,length(d));return vec4(vec3(.1,1.,.3)*l*k*(.9+.1*sin(u.y*400.)),1.);');
+D(3,'Retinatura a soglia','Solo due colori, mescolati a scacchi fitti.','vec2 a=floor(gl_FragCoord.xy/2.);vec2 a2=floor(a*.5);float d=fract(a2.x*.5+a2.y*a2.y*.75)*.25+fract(a.x*.5+a.y*a.y*.75);return vec4(vec3(step(d*.8,lum(X(u))))*vec3(.92,.88,.65)+vec3(.08,.05,.15),1.);');
+D(3,'Tratteggio','Ombre rese con linee incrociate, come un\'incisione.','float l=lum(X(u));vec2 q=gl_FragCoord.xy;float c=1.;if(l<.8&&mod(q.x+q.y,8.)<1.5)c=0.;if(l<.6&&mod(q.x-q.y,8.)<1.5)c=0.;if(l<.4&&mod(q.x+q.y+4.,8.)<1.5)c=0.;if(l<.2&&mod(q.x-q.y+4.,8.)<1.5)c=0.;return vec4(vec3(c)*vec3(.98,.95,.88)+(1.-c)*vec3(.1,.1,.2),1.);');
+D(3,'Giro dei colori','Le tinte ruotano lungo la foto come un arcobaleno lento.','vec3 c=X(u).rgb;float a=t*.5+u.x*2.;vec3 k=vec3(.57735);c=c*cos(a)+cross(k,c)*sin(a)+k*dot(k,c)*(1.-cos(a));return vec4(c,1.);');
+
+// ---- motore WebGL senza librerie ----
+let gl,cv,tex=[],prog={},cur=null,S={i:0,p:0,dir:0,f:0,tg:0,m:[.5,.5],mt:[.5,.5],h:0,over:0,idle:4,auto:2};
+function mkTex(c){const x=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,x);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);return x}
+function compile(src){const sh=(ty,s)=>{const o=gl.createShader(ty);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o};
+const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,VS));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,HEAD+'vec4 fx(vec2 u){'+src+'}\nvoid main(){gl_FragColor=vec4(fx(vUv).rgb,1.);}'));gl.bindAttribLocation(pr,0,'a');gl.linkProgram(pr);if(!gl.getProgramParameter(pr,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(pr));
+pr.u={};for(const n of['tA','tB','tT','p','t','h','ix','m','v','r'])pr.u[n]=gl.getUniformLocation(pr,n);return pr}
+function go(d){S.idle=0;S.tg+=d;if(S.dir)return;S.dir=d}
+function frame(t,dt){if(S.dir){S.p+=dt/1.4;if(S.p>=1){S.i=((S.i+S.dir)%N+N)%N;S.p=0;S.dir=0}}S.f+=(S.tg-S.f)*Math.min(1,dt*4);
+if(!S.over)S.mt=[.5+.3*Math.cos(t*.7),.5+.25*Math.sin(t*.9)];const v=[(S.mt[0]-S.m[0]),(S.mt[1]-S.m[1])];S.m[0]+=v[0]*Math.min(1,dt*6);S.m[1]+=v[1]*Math.min(1,dt*6);S.h+=(1-S.h)*Math.min(1,dt*3);
+const pr=cur,u=pr.u,e=S.p*S.p*(3-2*S.p),nx=S.dir?((S.i+S.dir)%N+N)%N:(S.i+1)%N;gl.viewport(0,0,cv.width,cv.height);gl.useProgram(pr);
+gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,tex[S.i]);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,tex[nx]);gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,tex[N]);
+gl.uniform1i(u.tA,0);gl.uniform1i(u.tB,1);gl.uniform1i(u.tT,2);gl.uniform1f(u.p,e);gl.uniform1f(u.t,t);gl.uniform1f(u.h,S.h);gl.uniform1f(u.ix,S.f);gl.uniform2f(u.m,S.m[0],S.m[1]);gl.uniform2f(u.v,v[0],v[1]);gl.uniform2f(u.r,cv.width,cv.height);gl.drawArrays(gl.TRIANGLES,0,3)}
+function show(d){if(!gl)return'';const k=DEMOS.indexOf(d);cur=prog[k]||(prog[k]=compile(d.g));S.idle=4;S.auto=2;
+return '// '+d.n+' — WebGL senza librerie\n// Fragment shader: fx(u) restituisce il colore del pixel alle coordinate u (0-1)\nvec4 fx(vec2 u){\n'+d.g.replace(/;/g,';\n')+'}\n\n// Intestazione comune a tutti gli shader\n'+HEAD+'\n// Vertex shader\n'+VS+'\n\n// JavaScript: texture, compilazione e ciclo di disegno\n'+[mkTex,compile,go,frame].map(f=>f.toString()).join('\n')}
+function hide(){cur=null}
+function boot(){const st=$q('#stage');st.innerHTML='<div class="gl"><canvas></canvas><button type="button" class="ar ar-p" aria-label="Foto precedente">←</button><button type="button" class="ar ar-n" aria-label="Foto successiva">→</button><p class="hint">Frecce, trascinamento o tasti ← →. Muovi il cursore sull\'immagine.</p></div>';
+cv=$q('canvas',st);gl=cv.getContext('webgl',{antialias:false})||cv.getContext('experimental-webgl');if(!gl){$q('.gl',st).insertAdjacentHTML('beforeend','<p class="err">Questo browser non ha WebGL attivo: le gallerie non possono essere disegnate.</p>');return}
+gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+const at=document.createElement('canvas');at.width=1600;at.height=1040;const ax=at.getContext('2d');CAN.forEach((c,i)=>ax.drawImage(c,(i%4)*400,Math.floor(i/4)*347,400,346));tex=CAN.map(mkTex);tex.push(mkTex(at));
+const fit=()=>{const r=cv.parentNode.getBoundingClientRect(),q=Math.min(devicePixelRatio||1,2);if(r.width){cv.width=Math.round(r.width*q);cv.height=Math.round(r.height*q)}};new ResizeObserver(fit).observe(cv.parentNode);fit();
+$q('.ar-p',st).onclick=()=>go(-1);$q('.ar-n',st).onclick=()=>go(1);window.__next=()=>go(1);
+addEventListener('keydown',e=>{if(e.target.tagName=='INPUT')return;if(e.key=='ArrowRight')go(1);if(e.key=='ArrowLeft')go(-1)});
+let dx=null;cv.onpointerdown=e=>{dx=e.clientX};addEventListener('pointerup',e=>{if(dx!=null){const d=e.clientX-dx;if(Math.abs(d)>30)go(d<0?1:-1)}dx=null});
+cv.onpointermove=e=>{const r=cv.getBoundingClientRect();S.over=1;S.mt=[(e.clientX-r.left)/r.width,1-(e.clientY-r.top)/r.height]};cv.onpointerleave=()=>{S.over=0};
+const still=matchMedia('(prefers-reduced-motion:reduce)').matches;let last=performance.now();const t0=last;
+(function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;if(!cur)return;S.idle+=dt;S.auto+=dt;if(!still&&S.idle>4&&S.auto>3.2){S.auto=0;S.tg+=1;if(!S.dir)S.dir=1}frame((now-t0)/1000,dt)})(last)}
+boot();(function(){var x=DEMOS.splice(89,1);DEMOS.length=0;DEMOS.push(x[0]);})();Catalog(DEMOS,FAM,show,hide);
+
+</script>
+</body></html>
